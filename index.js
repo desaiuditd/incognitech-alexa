@@ -111,11 +111,11 @@ function getWelcomeResponse(callback) {
     // If we wanted to initialize the session to have some attributes we could add those here.
     var sessionAttributes = {};
     var cardTitle = "Welcome";
-    var speechOutput = "Welcome to Room Score! Would you like to hear your chores or maybe even check your shopping list?";
+    var speechOutput = "Welcome to Incognitech! What can I bring to you?";
     // If the user either does not reply to the welcome message or says something that is not
     // understood, they will be prompted again with this text.
-    var repromptText = "Please tell me your main Chore by saying, " +
-        "my main Chore is red";
+    var repromptText = "You can ask me about anything. For example," +
+        "What's latest on TechCrunch";
     var shouldEndSession = true;
 
     callback(sessionAttributes,
