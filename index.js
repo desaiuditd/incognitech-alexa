@@ -124,7 +124,7 @@ function getWelcomeResponse(callback) {
 
 function handleSessionEndRequest(callback) {
     var cardTitle = "Session Ended";
-    var speechOutput = "Thanks for using RoomScore. Have a good day!";
+    var speechOutput = "Thanks for using Incognitech. Have a good day!";
     // Setting this to true ends the session and exits the skill.
     var shouldEndSession = true;
 
@@ -165,7 +165,7 @@ function setChoreInSession(intent, session, callback) {
 }
 
 function readLatestNewsTitles(intent, session, callback) {
-  
+
 }
 
 function createmainChoreAttributes(mainChore) {
