@@ -2,4 +2,4 @@ iLatestNewsTitles Read me latest news titles from TechCrunch
 iLatestNewsTitles What is latest on TechCrunch
 iReadLatestNewsArticle Read {index} article
 iNewsTitlesOrg What are the latest news from TechCrunch on {company}
-iHarshOrg IS TechCrunch harsh on {company}
+iOrgSentiment How does TechCrunch feel about {company}

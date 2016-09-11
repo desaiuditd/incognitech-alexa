@@ -88,6 +88,8 @@ function onIntent(intentRequest, session, callback) {
         readLatestNewsArticle(intent, session, callback);
     } else if ("iNewsTitlesOrg" === intentName) {
       getOrgNewsTC(intent, session, callback);
+    } else if ( 'iOrgSentiment' === intentName ) {
+      getOrganizationSentiment(intent, session, callback);
     } else if ("AMAZON.HelpIntent" === intentName) {
         getWelcomeResponse(callback);
     } else if ("AMAZON.StopIntent" === intentName || "AMAZON.CancelIntent" === intentName) {
@@ -325,6 +327,83 @@ function getOrgNewsTC(intent, session, callback) {
 
       callback(sessionAttributes,
         buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+    });
+
+  }).on('error', function (err) {
+    console.log('Error, with: ' + err.message);
+
+    // speechOutput = "Please say that again?";
+    // repromptText = "Please try again.";
+    // shouldEndSession = false;
+
+  });
+
+}
+
+function getOrganizationSentiment(intent, session, callback) {
+  var cardTitle = "Organization Sentiment";
+
+  var companyName = intent.slots.company.value;
+
+  var repromptText = null;
+  var sessionAttributes = {};
+  var shouldEndSession = true;
+  var speechOutput = '';
+
+  https.get('https://api.swiftype.com/api/v1/public/engines/search.json?q='+companyName+'&page=1&per_page=5&facets%5Bpage%5D%5B%5D=author&facets%5Bpage%5D%5B%5D=category&facets%5Bpage%5D%5B%5D=tag&facets%5Bpage%5D%5B%5D=object_type&filters%5Bpage%5D%5Btimestamp%5D%5Btype%5D=range&spelling=always&engine_key=zYD5B5-eXtZN9_epXvoo', function(res) {
+    console.log('statusCode:', res.statusCode);
+    res.setEncoding('utf8');
+    var body = '';
+    res.on('data', function(data) {
+      body += data;
+    });
+
+    res.on('end', function() {
+      var apiRes = JSON.parse(body);
+
+      posts = apiRes.records.page;
+
+      var sentiment = '';
+
+      var postsContent = '';
+
+      for(var i=0; i<posts.length;i++){
+        postsContent = postsContent + " " + posts[i].content;
+      }
+
+      var options = {
+        host : 'gateway-a.watsonplatform.net',
+        path : "/calls/text/TextGetTextSentiment?apikey=1f746102ce0c84403da10b06350acc3edb04105f&outputMode=json&text="+encodeURIComponent(postsContent),
+        method : 'POST',
+      };
+
+      https.request(options, function (res1) {
+        console.log('statusCode:', res1.statusCode);
+        res1.setEncoding('utf8');
+        var body1 = '';
+        res1.on('data', function(data) {
+          body1 += data;
+        });
+
+        res1.on('end', function () {
+          var apiRes1 = JSON.parse(body1);
+
+          sentiment = apiRes1.docSentiment;
+
+          speechOutput = "TechCrunch holds "+ sentiment.type + " sentiment towards " + companyName + ".";
+          if ( sentiment.score != '0.0' ) {
+            var score = ( parseFloat(sentiment.score) < 0 ) ? ( parseFloat(sentiment.score) * -1 ) : parseFloat(sentiment.score);
+            score = score * 100;
+            speechOutput = speechOutput + " And the sentiment strength is " + score + '%';
+          }
+
+          callback(sessionAttributes,
+            buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+        });
+      }).on('error', function (err1) {
+        console.log('Error, with: ' + err1.message);
+      });
+
     });
 
   }).on('error', function (err) {
