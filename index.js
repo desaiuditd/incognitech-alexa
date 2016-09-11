@@ -88,8 +88,6 @@ function onIntent(intentRequest, session, callback) {
         readLatestNewsArticle(intent, session, callback);
     } else if ("iNewsTitlesOrg" === intentName) {
       getOrgNewsTC(intent, session, callback);
-    } else if ("WhatsMyChoreIntent" === intentName) {
-        getChoreFromSession(intent, session, callback);
     } else if ("AMAZON.HelpIntent" === intentName) {
         getWelcomeResponse(callback);
     } else if ("AMAZON.StopIntent" === intentName || "AMAZON.CancelIntent" === intentName) {
@@ -227,7 +225,6 @@ function readLatestNewsTitles(intent, session, callback) {
   var shouldEndSession = false;
   var speechOutput = "";
 
-  // Testing Samples, Real Chores will be pulled from Application List and assigned to x
   var posts = [];
 
   https.get('https://techcrunch.com/wp-json/posts/latest', function(res) {
@@ -277,50 +274,20 @@ function readLatestNewsTitles(intent, session, callback) {
 }
 
 function getOrgNewsTC(intent, session, callback) {
-  var cardTitle = intent.name;
-  console.log(JSON.stringify(intent.slots));
+  var cardTitle = "Latest News on Company from TechCrunch";
+
   var companyName = intent.slots.company.value;
-  console.log("The company name is: " + companyName);
+
   var repromptText = null;
   var sessionAttributes = {};
-  var shouldEndSession = false;
+  var shouldEndSession = true;
   var speechOutput = "I'll be getting the data on " + companyName + " from Tech crunch. Just a moment";
-
-  var response = '';
-  getCompanyArticles(companyName, function(result) {
-    console.log(JSON.stringify(result));
-    // Put everything on speech output variable.
-  });
 
   callback(sessionAttributes,
     buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
 
 }
-function getChoreFromSession(intent, session, callback) {
-  var mainChoreSlots = intent.slots.Users;
-  var favWork = intent.slots.Chores;
-  var favShop = intent.slots.Shop;
-  var repromptText = null;
-  var sessionAttributes = {};
-  var shouldEndSession = false;
-  var speechOutput = "";
-  var cardTitle = "RoomScore";
 
-  if (session.attributes) {
-    mainChore = session.attributes.mainChore;
-  }
-
-  if (mainChoreSlots) {
-
-    speechOutput = "Assigning " + favWork.value + " to the chore list of " + mainChoreSlots.value ; //adding chore to user
-    shouldEndSession = true;
-
-
-    callback(sessionAttributes,
-      buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
-
-  }
-}
 // --------------- Helpers that build all of the responses -----------------------
 
 function buildSpeechletResponse(title, output, repromptText, shouldEndSession) {
@@ -350,24 +317,4 @@ function buildResponse(sessionAttributes, speechletResponse) {
     sessionAttributes: sessionAttributes,
     response: speechletResponse
   };
-}
-
-// --------------- Helpers that build all of the responses -----------------------
-
-function getCompanyArticles(startDate, endDate, callback) {
-//   return https.get({
-//     host: 'api.nasa.gov',
-//     path: '/neo/rest/v1/feed?start_date=' + startDate + '&end_date=' + endDate + '&api_key=DEMO_KEY'
-//   }, function(response) {
-//     // Continuously update stream with data
-//     var body = '';
-//     response.on('data', function(d) {
-//       body += d;
-//     });
-//     response.on('end', function() {
-//       console.log(body);
-//       callback(JSON.parse(body));
-//     });
-//   });
-  return 'at';
 }
