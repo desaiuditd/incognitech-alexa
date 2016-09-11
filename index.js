@@ -350,7 +350,7 @@ function getOrganizationSentiment(intent, session, callback) {
   var shouldEndSession = true;
   var speechOutput = '';
 
-  https.get('https://api.swiftype.com/api/v1/public/engines/search.json?q='+companyName+'&page=1&per_page=5&facets%5Bpage%5D%5B%5D=author&facets%5Bpage%5D%5B%5D=category&facets%5Bpage%5D%5B%5D=tag&facets%5Bpage%5D%5B%5D=object_type&filters%5Bpage%5D%5Btimestamp%5D%5Btype%5D=range&spelling=always&engine_key=zYD5B5-eXtZN9_epXvoo', function(res) {
+  https.get('https://api.swiftype.com/api/v1/public/engines/search.json?q='+companyName+'&page=1&per_page=10&facets%5Bpage%5D%5B%5D=author&facets%5Bpage%5D%5B%5D=category&facets%5Bpage%5D%5B%5D=tag&facets%5Bpage%5D%5B%5D=object_type&filters%5Bpage%5D%5Btimestamp%5D%5Btype%5D=range&spelling=always&engine_key=zYD5B5-eXtZN9_epXvoo', function(res) {
     console.log('statusCode:', res.statusCode);
     res.setEncoding('utf8');
     var body = '';
@@ -361,48 +361,63 @@ function getOrganizationSentiment(intent, session, callback) {
     res.on('end', function() {
       var apiRes = JSON.parse(body);
 
-      posts = apiRes.records.page;
+      var posts = apiRes.records.page;
 
-      var sentiment = '';
+      var sentiments = [];
 
-      var postsContent = '';
+      var completedRequests = 0;
 
       for(var i=0; i<posts.length;i++){
-        postsContent = postsContent + " " + posts[i].content;
+        https.get("https://gateway-a.watsonplatform.net/calls/url/URLGetTextSentiment?apikey=494010774c19f65b2d7a464521bb8f4e2c847d7f&outputMode=json&url="+encodeURIComponent(posts[i].url), function (res1) {
+          console.log('statusCode:', res1.statusCode);
+          res1.setEncoding('utf8');
+          var body1 = '';
+          res1.on('data', function(data) {
+            body1 += data;
+          });
+
+          res1.on('end', function () {
+            var apiRes1 = JSON.parse(body1);
+
+            sentiments.push(apiRes1.docSentiment);
+
+            completedRequests++;
+            if (completedRequests == posts.length) {
+
+              console.log(sentiments);
+
+              var totalSentimentScore = 0;
+              for(var j=0; j<sentiments.length; j++) {
+                console.log(parseFloat(sentiments[j].score));
+                totalSentimentScore += parseFloat(sentiments[j].score);
+              }
+
+              var avgSentimentScore = totalSentimentScore / sentiments.length;
+
+              console.log(avgSentimentScore);
+
+              var sentimentType = 'neutral';
+              if (avgSentimentScore < 0) {
+                sentimentType = 'negative';
+              } else if (avgSentimentScore > 0) {
+                sentimentType = 'positive';
+              }
+
+              speechOutput = "TechCrunch holds "+ sentimentType + " sentiment towards " + companyName + ".";
+              if ( avgSentimentScore != 0 ) {
+                avgSentimentScore = avgSentimentScore * 100;
+                speechOutput = speechOutput + " And the sentiment strength is " + avgSentimentScore.toFixed(2) + '%';
+              }
+
+              callback(sessionAttributes,
+                buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+            }
+
+          });
+        }).on('error', function (err1) {
+          console.log('Error, with: ' + err1.message);
+        });
       }
-
-      var options = {
-        host : 'gateway-a.watsonplatform.net',
-        path : "/calls/text/TextGetTextSentiment?apikey=1f746102ce0c84403da10b06350acc3edb04105f&outputMode=json&text="+encodeURIComponent(postsContent),
-        method : 'POST',
-      };
-
-      https.request(options, function (res1) {
-        console.log('statusCode:', res1.statusCode);
-        res1.setEncoding('utf8');
-        var body1 = '';
-        res1.on('data', function(data) {
-          body1 += data;
-        });
-
-        res1.on('end', function () {
-          var apiRes1 = JSON.parse(body1);
-
-          sentiment = apiRes1.docSentiment;
-
-          speechOutput = "TechCrunch holds "+ sentiment.type + " sentiment towards " + companyName + ".";
-          if ( sentiment.score != '0.0' ) {
-            var score = ( parseFloat(sentiment.score) < 0 ) ? ( parseFloat(sentiment.score) * -1 ) : parseFloat(sentiment.score);
-            score = score * 100;
-            speechOutput = speechOutput + " And the sentiment strength is " + score + '%';
-          }
-
-          callback(sessionAttributes,
-            buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
-        });
-      }).on('error', function (err1) {
-        console.log('Error, with: ' + err1.message);
-      });
 
     });
 
