@@ -181,37 +181,44 @@ function readLatestNewsArticle(intent, session, callback) {
     } else {
       var post = articles[i];
 
-      https.get('https://techcrunch.com/wp-json/posts/'+(post.id), function(res) {
-        console.log('statusCode:', res.statusCode);
-        res.setEncoding('utf8');
-        var body = '';
-        res.on('data', function(data) {
-          body += data;
-        });
+      if (post.content) {
+        speechOutput = post.title + '. ' + post.content;
 
-        res.on('end', function() {
-          post = JSON.parse(body);
+        callback(sessionAttributes,
+          buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+      } else {
+        https.get('https://techcrunch.com/wp-json/posts/'+(post.id), function(res) {
+          console.log('statusCode:', res.statusCode);
+          res.setEncoding('utf8');
+          var body = '';
+          res.on('data', function(data) {
+            body += data;
+          });
 
-          var newtalk = '';
-          for(var j=0; j<post.content.length;j++){
-            if(post.content[j].type == 'paragraph') {
-              newtalk = newtalk + post.content[j].text;
+          res.on('end', function() {
+            post = JSON.parse(body);
+
+            var newtalk = '';
+            for(var j=0; j<post.content.length;j++){
+              if(post.content[j].type == 'paragraph') {
+                newtalk = newtalk + post.content[j].text;
+              }
             }
-          }
-          speechOutput = post.title + '. ' + newtalk;
+            speechOutput = post.title + '. ' + newtalk;
 
-          callback(sessionAttributes,
-               buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+            callback(sessionAttributes,
+              buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+          });
+
+        }).on('error', function (err) {
+          console.log('Error, with: ' + err.message);
+
+          // speechOutput = "Please say that again?";
+          // repromptText = "Please try again.";
+          // shouldEndSession = false;
+
         });
-
-      }).on('error', function (err) {
-        console.log('Error, with: ' + err.message);
-
-        // speechOutput = "Please say that again?";
-        // repromptText = "Please try again.";
-        // shouldEndSession = false;
-
-      });
+      }
 
     }
   }
@@ -280,11 +287,54 @@ function getOrgNewsTC(intent, session, callback) {
 
   var repromptText = null;
   var sessionAttributes = {};
-  var shouldEndSession = true;
-  var speechOutput = "I'll be getting the data on " + companyName + " from Tech crunch. Just a moment";
+  var shouldEndSession = false;
+  var speechOutput = '';
 
-  callback(sessionAttributes,
-    buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+  var posts = [];
+
+  https.get('https://api.swiftype.com/api/v1/public/engines/search.json?q='+companyName+'&page=1&per_page=5&facets%5Bpage%5D%5B%5D=author&facets%5Bpage%5D%5B%5D=category&facets%5Bpage%5D%5B%5D=tag&facets%5Bpage%5D%5B%5D=object_type&filters%5Bpage%5D%5Btimestamp%5D%5Btype%5D=range&spelling=always&engine_key=zYD5B5-eXtZN9_epXvoo', function(res) {
+    console.log('statusCode:', res.statusCode);
+    res.setEncoding('utf8');
+    var body = '';
+    res.on('data', function(data) {
+      body += data;
+    });
+
+    res.on('end', function() {
+      var apiRes = JSON.parse(body);
+
+      posts = apiRes.records.page;
+
+      var finalPosts = [];
+
+      for(var i=0; i<posts.length;i++){
+        finalPosts[i] = {
+          title: posts[i].title,
+          content: posts[i].content
+        };
+      }
+
+      sessionAttributes.latestNewsPosts = finalPosts;
+
+      var newtalk = '';
+
+      for(var i=0; i<posts.length;i++){
+        newtalk = newtalk + (i+1) + ". " + posts[i].title + ". ";
+      }
+      speechOutput = "TechCrunch has "+ posts.length + " latest news on " + companyName + ". " + newtalk;
+
+      callback(sessionAttributes,
+        buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+    });
+
+  }).on('error', function (err) {
+    console.log('Error, with: ' + err.message);
+
+    // speechOutput = "Please say that again?";
+    // repromptText = "Please try again.";
+    // shouldEndSession = false;
+
+  });
 
 }
 
