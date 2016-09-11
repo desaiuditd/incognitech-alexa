@@ -119,7 +119,7 @@ function getWelcomeResponse(callback) {
   // If the user either does not reply to the welcome message or says something that is not
   // understood, they will be prompted again with this text.
   var repromptText = "You can ask me about anything. For example," +
-    "What's latest on TechCrunch";
+    "What is latest on TechCrunch";
   var shouldEndSession = false;
 
   callback(sessionAttributes,
