@@ -2,6 +2,33 @@
   "intents": [
     {
       "intent": "iLatestNewsTitles"
+    },
+    {
+      "intent": "iReadLatestNewsArticle",
+      "slots": [
+        {
+          "name": "index",
+          "type": "ARTICLE_INDEX"
+        }
+      ]
+    },
+    {
+      "intent": "iNewsTitlesOrg",
+      "slots": [
+        {
+          "name": "company",
+          "type": "LIST_OF_ORGANIZATIONS"
+        }
+      ]
+    },
+    {
+      "intent": "iHarshOrg",
+      "slots": [
+        {
+          "name": "company",
+          "type": "LIST_OF_ORGANIZATIONS"
+        }
+      ]
     }
   ]
 }

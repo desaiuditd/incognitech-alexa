@@ -81,20 +81,22 @@ function onIntent(intentRequest, session, callback) {
   var intent = intentRequest.intent,
     intentName = intentRequest.intent.name;
 
-  // Dispatch to your skill's intent handlers
-  if ("iLatestNewsTitles" === intentName) {
-    setChoreInSession(intent, session, callback);
-  } else if ("WhatsMyChoreIntent" === intentName) {
-    getChoreFromSession(intent, session, callback);
-  } else if ("AMAZON.HelpIntent" === intentName) {
-    getWelcomeResponse(callback);
-  } else if ("AMAZON.StopIntent" === intentName || "AMAZON.CancelIntent" === intentName) {
-    handleSessionEndRequest(callback);
-  } else if ("iNewsTitlesOrg" === intentName) {
-    getOrgNewsTC(intent, session, callback);
-  } else {
-    throw "Invalid intent";
-  }
+    // Dispatch to your skill's intent handlers
+    if ("iLatestNewsTitles" === intentName) {
+        readLatestNewsTitles(intent, session, callback);
+    } else if ('iReadLatestNewsArticle' === intentName) {
+        readLatestNewsArticle(intent, session, callback);
+    } else if ("iNewsTitlesOrg" === intentName) {
+      getOrgNewsTC(intent, session, callback);
+    } else if ("WhatsMyChoreIntent" === intentName) {
+        getChoreFromSession(intent, session, callback);
+    } else if ("AMAZON.HelpIntent" === intentName) {
+        getWelcomeResponse(callback);
+    } else if ("AMAZON.StopIntent" === intentName || "AMAZON.CancelIntent" === intentName) {
+        handleSessionEndRequest(callback);
+    } else {
+        throw "Invalid intent";
+    }
 }
 
 /**
@@ -133,53 +135,145 @@ function handleSessionEndRequest(callback) {
   callback({}, buildSpeechletResponse(cardTitle, speechOutput, null, shouldEndSession));
 }
 
-/**
- * Sets the Chore in the session and prepares the speech to reply to the user.
- */
-
-///
-function setChoreInSession(intent, session, callback) {
-  var cardTitle = intent.name;
-  var mainChoreSlot = intent.slots.Tasks;
+function readLatestNewsArticle(intent, session, callback) {
+  var cardTitle = "Read News Article From TechCrunch";
   var repromptText = "";
   var sessionAttributes = {};
   var shouldEndSession = true;
   var speechOutput = "";
-  // Testing Samples, Real Chores will be pulled from Application List and assigned to x
-  x= ["Take Out the Trash", "Clean the Toilet", "Walk The Dog"];
-  var newtalk = "";
-  if (mainChoreSlot) {
-    var mainChore = mainChoreSlot.value;
-    sessionAttributes = createmainChoreAttributes(mainChore);
+  var articleIndex = intent.slots.index;
 
-    for(var i=0; i<x.length;i++){
-      newtalk = newtalk + x[i] + ", ";
-    }
-    speechOutput = "You have "+ x.length + " chores. " + newtalk;
-    repromptText = "I'm Sorry, did you want to know your chores? ";
-  } else {
-    speechOutput = "Please say that again?";
-    repromptText = "Didn't Hear you, try again";
+  console.log(articleIndex);
+
+  var articles = '';
+
+  if (session.attributes) {
+    articles = session.attributes.latestNewsPosts;
   }
 
-  callback(sessionAttributes,
-    buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+  if (articles === '') {
+    speechOutput = "Please try again.";
+  } else {
+    var i = -1;
+    switch(articleIndex.value) {
+      case '1st':
+      case 'first':
+        i = 0;
+        break;
+      case '2nd':
+      case 'second':
+        i = 1;
+        break;
+      case '3rd':
+      case 'third':
+        i = 2;
+        break;
+      case '4th':
+      case 'fourth':
+        i = 3;
+        break;
+      case '5th':
+      case 'fifth':
+        i = 4;
+        break;
+    }
+
+    if (i === -1) {
+      // speechOutput = "Please try again.";
+    } else {
+      var post = articles[i];
+
+      https.get('https://techcrunch.com/wp-json/posts/'+(post.id), function(res) {
+        console.log('statusCode:', res.statusCode);
+        res.setEncoding('utf8');
+        var body = '';
+        res.on('data', function(data) {
+          body += data;
+        });
+
+        res.on('end', function() {
+          post = JSON.parse(body);
+
+          var newtalk = '';
+          for(var j=0; j<post.content.length;j++){
+            if(post.content[j].type == 'paragraph') {
+              newtalk = newtalk + post.content[j].text;
+            }
+          }
+          speechOutput = post.title + '. ' + newtalk;
+
+          callback(sessionAttributes,
+               buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+        });
+
+      }).on('error', function (err) {
+        console.log('Error, with: ' + err.message);
+
+        // speechOutput = "Please say that again?";
+        // repromptText = "Please try again.";
+        // shouldEndSession = false;
+
+      });
+
+    }
+  }
+
 }
 
 function readLatestNewsTitles(intent, session, callback) {
-  var cardTitle = intent.name;
-  var mainChoreSlot = intent.slots.company;
-  var repromptText = null;
+  var cardTitle = "Read News Titles From TechCrunch";
+  var repromptText = "";
   var sessionAttributes = {};
   var shouldEndSession = false;
   var speechOutput = "";
-  cardTitle = "RoomScore";
-}
 
-function createmainChoreAttributes(mainChore) {
-  return {
-    mainChore: mainChore
-  };
+  // Testing Samples, Real Chores will be pulled from Application List and assigned to x
+  var posts = [];
+
+  https.get('https://techcrunch.com/wp-json/posts/latest', function(res) {
+    console.log('statusCode:', res.statusCode);
+    res.setEncoding('utf8');
+    var body = '';
+    res.on('data', function(data) {
+      body += data;
+    });
+
+    res.on('end', function() {
+      var apiRes = JSON.parse(body);
+
+      posts = apiRes.posts.slice(0,5);
+
+      var finalPosts = [];
+
+      for(var i=0; i<posts.length;i++){
+        finalPosts[i] = {
+          title: posts[i].title,
+          id: posts[i].id
+        };
+      }
+
+      sessionAttributes.latestNewsPosts = finalPosts;
+
+      var newtalk = '';
+
+      for(var i=0; i<posts.length;i++){
+          newtalk = newtalk + (i+1) + ". " + posts[i].title + ". ";
+      }
+      speechOutput = "TechCrunch has "+ posts.length + " latest stories. " + newtalk;
+
+      callback(sessionAttributes,
+           buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+    });
+
+  }).on('error', function (err) {
+    console.log('Error, with: ' + err.message);
+
+    // speechOutput = "Please say that again?";
+    // repromptText = "Please try again.";
+    // shouldEndSession = false;
+
+  });
+
 }
 
 function getOrgNewsTC(intent, session, callback) {
@@ -276,4 +370,4 @@ function getCompanyArticles(startDate, endDate, callback) {
 //     });
 //   });
   return 'at';
-} 
+}
