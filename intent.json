@@ -22,7 +22,7 @@
       ]
     },
     {
-      "intent": "iHarshOrg",
+      "intent": "iOrgSentiment",
       "slots": [
         {
           "name": "company",
