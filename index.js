@@ -82,7 +82,7 @@ function onIntent(intentRequest, session, callback) {
         intentName = intentRequest.intent.name;
 
     // Dispatch to your skill's intent handlers
-    if ("MyChoreIntent" === intentName) {
+    if ("iLatestNewsTitles" === intentName) {
         setChoreInSession(intent, session, callback);
     } else if ("WhatsMyChoreIntent" === intentName) {
         getChoreFromSession(intent, session, callback);
@@ -116,7 +116,7 @@ function getWelcomeResponse(callback) {
     // understood, they will be prompted again with this text.
     var repromptText = "You can ask me about anything. For example," +
         "What's latest on TechCrunch";
-    var shouldEndSession = true;
+    var shouldEndSession = false;
 
     callback(sessionAttributes,
         buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
@@ -162,6 +162,10 @@ function setChoreInSession(intent, session, callback) {
 
     callback(sessionAttributes,
          buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+}
+
+function readLatestNewsTitles(intent, session, callback) {
+  
 }
 
 function createmainChoreAttributes(mainChore) {
